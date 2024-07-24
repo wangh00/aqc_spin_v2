@@ -9,7 +9,6 @@ from Crypto.Util.Padding import pad
 import base64
 import hashlib
 import execjs
-# from rotatecaptcha_inference import *
 from rotate_image_classifier_inference import *
 
 warnings.filterwarnings("ignore")
@@ -149,7 +148,7 @@ def get_mv2_num(ac_c):
 
 class AqcSpin:
     def __init__(self):
-        self.init_content, self.style_content, self.location, self.proxy = get_init()
+        self.init_content, self.style_content, self.location = get_init()
         self.base_headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9",
@@ -174,10 +173,10 @@ class AqcSpin:
         ac_c = get_ac_c(angle)
         ran2 = get_mv2_num(ac_c)
         mv2 = generate_trajectory_spin(ran2)
+
         ran1 = 1 if ac_c < 0.5 else 2
         distance = angle * 238 / 360
         mv1 = generate_trajectory(ran1, distance)
-        print('mv1:',mv1,' mv2:',mv2)
         _str = '{"common":{"cl":[],"mv":%s,"sc":[],"kb":[],"sb":[],"sd":[],"sm":[],"cr":{"screenTop":0,"screenLeft":0,"clientWidth":1920,"clientHeight":919,"screenWidth":1920,"screenHeight":1080,"availWidth":1920,"availHeight":1040,"outerWidth":1920,"outerHeight":1040,"scrollWidth":1920,"scrollHeight":1920},"simu":0},"backstr":"%s","captchalist":{"spin-0":{"cr":{"left":815,"top":307,"width":290,"height":280},"back":{"left":884,"top":351,"width":152,"height":152},"mv":%s,"ac_c":%s,"p":{}}}}' % (
             mv1, back_str, mv2, ac_c)
         _str = _str.replace(' ', '')
@@ -228,6 +227,7 @@ class AqcSpin:
         print('开始验证登录信息')
         f1 = self.get_fs1()
         f2 = self.get_fs2(f1)
+        print('f2长度:', len(f2))
         cookies = {
             "BAIDUID": "AC636876F45B05C70F953FCF19A3C6FE:FG=1",
             "BAIDUID_BFESS": "AC636876F45B05C70F953FCF19A3C6FE:FG=1",
