@@ -28,40 +28,6 @@ def get_fuid():
     return encoded_ciphertext.decode()
 
 
-def get_new_key(_as):
-    mode_dict = {
-        "DZ": ["0", "1", "2", "3", "4"],
-        "FB": ["A", "B", "C", "D", "E", "F", "G", "a", "b", "c", "d", "e", "f", "g"],
-        "GU": 'appsapi2',
-        "JQ": ["O", "P", "Q", "R", "S", "T", "o", "p", "q", "r", "s", "t"],
-        "NZ": ["5", "6", "7", "8", "9"],
-        "eR": ["H", "I", "J", "K", "L", "M", "N", "h", "i", "j", "k", "l", "m", "n"],
-        "px": "https://wappass.baidu.com/static/touch/js/lib/fingerprint.js",
-        "o": ["U", "V", "W", "X", "Y", "Z", "u", "v", "w", "x", "y", "z"],
-        "q4": 2
-    }
-    r = _as[-1]
-    data = f'{_as}appsapi2'
-    with open('sha3.js', 'r', encoding='utf-8') as f:
-        js_code = f.read()
-    _js = execjs.compile(js_code)
-    if r in mode_dict['FB']:
-        mess = hashlib.md5(data.encode('utf-8')).hexdigest()
-    elif r in mode_dict['eR']:
-        mess = hashlib.sha1(data.encode('utf-8')).hexdigest()
-    elif r in mode_dict['JQ']:
-        mess = hashlib.sha256(data.encode('utf-8')).hexdigest()
-    elif r in mode_dict['o']:
-        mess = hashlib.sha512(data.encode('utf-8')).hexdigest()
-    elif r in mode_dict['DZ']:
-        mess = _js.call('get_sha3_encrypt', data, 256)
-    elif r in mode_dict['NZ']:
-        mess = _js.call('get_sha3_encrypt', data, 512)
-    else:
-        return
-    return mess[0:16]
-
-
 def zero_pad(data, block_size):
     padding_length = block_size - (len(data) % block_size)
     padding = b'\0' * padding_length
@@ -149,6 +115,9 @@ def get_mv2_num(ac_c):
 class AqcSpin:
     def __init__(self):
         self.init_content, self.style_content, self.location = get_init()
+        with open('sha3.js', 'r', encoding='utf-8') as f:
+            js_code = f.read()
+        self._js = execjs.compile(js_code)
         self.base_headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9",
@@ -167,22 +136,54 @@ class AqcSpin:
             "sec-ch-ua-platform": "\"Windows\""
         }
 
+    def get_new_key(self, _as):
+        mode_dict = {
+            "DZ": ["0", "1", "2", "3", "4"],
+            "FB": ["A", "B", "C", "D", "E", "F", "G", "a", "b", "c", "d", "e", "f", "g"],
+            "GU": 'appsapi2',
+            "JQ": ["O", "P", "Q", "R", "S", "T", "o", "p", "q", "r", "s", "t"],
+            "NZ": ["5", "6", "7", "8", "9"],
+            "eR": ["H", "I", "J", "K", "L", "M", "N", "h", "i", "j", "k", "l", "m", "n"],
+            "px": "https://wappass.baidu.com/static/touch/js/lib/fingerprint.js",
+            "o": ["U", "V", "W", "X", "Y", "Z", "u", "v", "w", "x", "y", "z"],
+            "q4": 2
+        }
+        r = _as[-1]
+        data = f'{_as}appsapi2'
+
+        if r in mode_dict['FB']:
+            mess = hashlib.md5(data.encode('utf-8')).hexdigest()
+        elif r in mode_dict['eR']:
+            mess = hashlib.sha1(data.encode('utf-8')).hexdigest()
+        elif r in mode_dict['JQ']:
+            mess = hashlib.sha256(data.encode('utf-8')).hexdigest()
+        elif r in mode_dict['o']:
+            mess = hashlib.sha512(data.encode('utf-8')).hexdigest()
+        elif r in mode_dict['DZ']:
+            mess = self._js.call('get_sha3_encrypt', data, 256)
+        elif r in mode_dict['NZ']:
+            mess = self._js.call('get_sha3_encrypt', data, 512)
+        else:
+            return
+        return mess[0:16]
+
     def get_fs1(self):
         back_str = self.style_content['data']['backstr']
         angle = self.get_img_file()
+        pow_map = self.get_pow_map()
+        print('获取到的pow_map:',pow_map)
         ac_c = get_ac_c(angle)
         ran2 = get_mv2_num(ac_c)
         mv2 = generate_trajectory_spin(ran2)
-
         ran1 = 1 if ac_c < 0.5 else 2
         distance = angle * 238 / 360
         mv1 = generate_trajectory(ran1, distance)
-        _str = '{"common":{"cl":[],"mv":%s,"sc":[],"kb":[],"sb":[],"sd":[],"sm":[],"cr":{"screenTop":0,"screenLeft":0,"clientWidth":1920,"clientHeight":919,"screenWidth":1920,"screenHeight":1080,"availWidth":1920,"availHeight":1040,"outerWidth":1920,"outerHeight":1040,"scrollWidth":1920,"scrollHeight":1920},"simu":0},"backstr":"%s","captchalist":{"spin-0":{"cr":{"left":815,"top":307,"width":290,"height":280},"back":{"left":884,"top":351,"width":152,"height":152},"mv":%s,"ac_c":%s,"p":{}}}}' % (
-            mv1, back_str, mv2, ac_c)
+        _str = '{"common":{"cl":[],"mv":%s,"sc":[],"kb":[],"sb":[],"sd":[],"sm":[],"cr":{"screenTop":0,"screenLeft":0,"clientWidth":1920,"clientHeight":919,"screenWidth":1920,"screenHeight":1080,"availWidth":1920,"availHeight":1040,"outerWidth":1920,"outerHeight":1040,"scrollWidth":1920,"scrollHeight":1920},"simu":0},"backstr":"%s","captchalist":{"spin-0":{"cr":{"left":815,"top":307,"width":290,"height":280},"back":{"left":884,"top":351,"width":152,"height":152},"mv":%s,"ac_c":%s,"p":%s}}}' % (
+            mv1, back_str, mv2, ac_c,pow_map)
         _str = _str.replace(' ', '')
         # print('json参数长度:', len(_str))
         _as = self.init_content['data']['as']
-        key = get_new_key(_as)
+        key = self.get_new_key(_as)
         plaintext_bytes = _str.encode('utf-8')
         # 创建AES加密对象，使用ECB模式
         cipher = AES.new(key.encode('utf-8'), AES.MODE_ECB)
@@ -196,7 +197,7 @@ class AqcSpin:
         need_encrypt = '{"common_en":"%s","backstr":"%s"}' % (fs1, back_str)
         need_encrypt = need_encrypt.replace(' ', '')
         _as = self.init_content['data']['as']
-        key = get_new_key(_as)
+        key = self.get_new_key(_as)
         plaintext_bytes = need_encrypt.encode('utf-8')
         # 创建AES加密对象，使用ECB模式
         cipher = AES.new(key.encode('utf-8'), AES.MODE_ECB)
@@ -214,11 +215,24 @@ class AqcSpin:
         response = requests.get(img_url, headers=self.base_headers)
         with open('img_file/demo_aqc.png', 'wb') as f:
             f.write(response.content)
-        time.sleep(1.5)
+        time.sleep(1)
         # predicted_angle= get_result('img_file/demo_aqc.png')
         results, avg_diff = get_result('img_file')
         predicted_angle = results[0]['Infer']
         return predicted_angle
+
+    def get_pow_map(self):
+        ext = self.style_content['data']['ext']
+        if ext['p']['m'] == 's':
+            e = "sha1Pow"
+        elif ext['p']['m'] == 'm':
+            e = "md5Pow"
+        else:
+            raise ValueError('未知m参数')
+        pow_map = self._js.call('pow', json.dumps(
+            {"count": ext['p']['c'], "list": ['spin-0'], "originStr": {'spin-0': ext['p']['q']['spin-0']},
+             "version": e}))
+        return json.dumps(pow_map).replace(' ','')
 
     def validate_log(self):
         """
@@ -272,7 +286,7 @@ class AqcSpin:
             response_refresh = requests.post('https://wappass.baidu.com/cap/style', headers=self.base_headers,
                                              data=data)
             self.style_content = response_refresh.json()
-            self.validate_log()
+            return self.validate_log()
 
 
 if __name__ == '__main__':
