@@ -34,7 +34,9 @@ class RotateNet(nn.Module):
 
 def get_result(data_path):
     with torch.no_grad():
-        model = torch.load('models/model_13.pth', map_location=torch.device('cpu')).eval()
+        # torch>=2.6 的 torch.load 默认 weights_only=True，整模型 pickle 需显式关闭
+        model = torch.load('models/model_13.pth', map_location=torch.device('cpu'),
+                           weights_only=False).eval()
         # data_path = './img_examples'
         files = os.listdir(data_path)
         labels = [file.split('.')[0].split('_')[1] for file in files]

@@ -1,5 +1,4 @@
 import os
-import wget
 import zipfile
 
 import math
@@ -11,6 +10,8 @@ import torch
 
 
 def download(output_dir):
+    import wget  # 仅训练集下载需要，避免推理环境强依赖
+
     for i in range(10):
         filename = 'part{}.zip'.format(i + 1)
         url = r'http://www.cs.ucf.edu/~aroshan/index_files/Dataset_PitOrlManh/zipped images/' + filename
